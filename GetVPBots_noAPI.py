@@ -1,12 +1,13 @@
 __author__ = 'Vishant'
-import steam
+import urllib2
+import json
 import timeit
+from multiprocessing.dummy import Pool as ThreadPool
+
 from termcolor import colored
 
 start = timeit.default_timer()
-
 API_KEY = 'D77FC95E768AB539A015918922E63EB8'
-steam.api.key.set(API_KEY)
 
 # item_name = "Exalted Frost Avalanche"
 # item_parameter = "Shawl and Upgraded Wolf Pup (Locked)"
@@ -116,46 +117,51 @@ VPGAME_BOTS = ['76561198113841713', '76561198113916563', '76561198113869089', '7
                '76561198213432087', '76561198245746460', '76561198213480897', '76561198245675214', '76561198245606504',
                '76561198213516493', '76561198245699000', '76561198245684514', '76561198245725350', '76561198245668534',
                '76561198213448635']
+
 GOOD_BOTS = []
-ERROR_COUNT = 0
 
-def check_vp_bot(bot, errors=0):
-    global ERROR_COUNT
+def get_inventory(steamid):
+    data = urllib2.urlopen('http://steamcommunity.com/profiles/'+steamid+'/inventory/json/570/2')
+    json_data = json.loads(data.read())
+    descriptions = json_data['rgDescriptions']
+    return descriptions
 
-    if errors < 5:
-        try:
-            inventory_context = steam.sim.inventory_context(bot)
-            inventory = steam.sim.inventory(inventory_context.get(570), bot)
-            good = False
+def check_vp_bot(bot, error_container):
+    try:
+        inv = get_inventory(bot)
+        good = False
 
-            arcanas = [item for item in inventory if item.full_name == item_name]
+        arcanas = [item for item in inv if inv[item]['market_name'] == item_name]
 
-            if len(arcanas) is 1:
-                for item in arcanas:
-                    if all([item_parameter not in att.description for att in item.attributes]):
-                        good = True
-                        GOOD_BOTS.append(bot)
+        if len(arcanas) is 1:
+            for item in arcanas:
+                if all([item_parameter not in att['value'] for att in item['descriptions']]):
+                    good = True
 
-            if good:
-                print colored("%s SUCCESS" % bot, 'green')
-            else:
-                print colored("%s FAILURE" % bot, 'red')
-
-            VPGAME_BOTS.remove(bot)
-        except:
-            check_vp_bot(bot, errors+1)
-    else:
-        VPGAME_BOTS.remove(bot)
-        ERROR_COUNT += 1
+        if good:
+            print colored("%s SUCCESS" % bot, 'green')
+        else:
+            print colored("%s FAILURE" % bot, 'red')
+    except:
+        error_container.append(bot)
         print colored("%s ERROR" % bot, 'yellow')
 
-while VPGAME_BOTS:
-    for bot in VPGAME_BOTS:
-        check_vp_bot(bot)
+def curry(error_list):
+    return lambda x: check_vp_bot(x, error_list)
+
+pool = ThreadPool(4)
+unchecked_bots = VPGAME_BOTS
+
+for i in range(1):
+    error_bots = []
+    pool.map(curry(error_bots), unchecked_bots)
+
+    unchecked_bots = error_bots
+
+pool.close()
 
 print GOOD_BOTS
-print ERROR_COUNT
+print len(unchecked_bots)
 
 stop = timeit.default_timer()
 print stop - start
-check_vp_bot('76561198113866850')

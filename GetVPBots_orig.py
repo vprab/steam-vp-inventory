@@ -1,9 +1,7 @@
+#!/usr/bin/python
 __author__ = 'Vishant'
 import steam
-import timeit
 from termcolor import colored
-
-start = timeit.default_timer()
 
 API_KEY = 'D77FC95E768AB539A015918922E63EB8'
 steam.api.key.set(API_KEY)
@@ -14,8 +12,15 @@ steam.api.key.set(API_KEY)
 # item_name = "Virtus Werebear"
 # item_parameter = "Tier 3 (Locked)"
 
+# item_name = "Genuine Lieutenant Squawkins"
+# item_parameter = "Sailboat Squawkins (Locked)"
+
+# item_name = "Limbs of Entwined Fate"
+# item_parameter = "Skittering Limbs (Locked)"
+
 item_name = "Exalted Manifold Paradox"
 item_parameter = "Style 3 (Locked)"
+
 
 VPGAME_BOTS = ['76561198113841713', '76561198113916563', '76561198113869089', '76561198113871288', '76561198113895577',
                '76561198113853012', '76561198113841538', '76561198113890905', '76561198113901893', '76561198113865140',
@@ -117,18 +122,17 @@ VPGAME_BOTS = ['76561198113841713', '76561198113916563', '76561198113869089', '7
                '76561198213516493', '76561198245699000', '76561198245684514', '76561198245725350', '76561198245668534',
                '76561198213448635']
 GOOD_BOTS = []
+ERROR_BOTS = {}
 ERROR_COUNT = 0
 
-def check_vp_bot(bot, errors=0):
-    global ERROR_COUNT
-
-    if errors < 5:
+while VPGAME_BOTS != []:
+    for bot in VPGAME_BOTS:
         try:
             inventory_context = steam.sim.inventory_context(bot)
             inventory = steam.sim.inventory(inventory_context.get(570), bot)
             good = False
 
-            arcanas = [item for item in inventory if item.full_name == item_name]
+            arcanas = [item for item in inventory if item.name == item_name]
 
             if len(arcanas) is 1:
                 for item in arcanas:
@@ -138,24 +142,22 @@ def check_vp_bot(bot, errors=0):
 
             if good:
                 print colored("%s SUCCESS" % bot, 'green')
-            else:
-                print colored("%s FAILURE" % bot, 'red')
+            # else:
+            #     print colored("%s FAILURE" % bot, 'red')
 
             VPGAME_BOTS.remove(bot)
         except:
-            check_vp_bot(bot, errors+1)
-    else:
-        VPGAME_BOTS.remove(bot)
-        ERROR_COUNT += 1
-        print colored("%s ERROR" % bot, 'yellow')
+            if bot not in ERROR_BOTS:
+                ERROR_BOTS[bot] = 1
+            else:
+                ERROR_BOTS[bot] += 1
 
-while VPGAME_BOTS:
-    for bot in VPGAME_BOTS:
-        check_vp_bot(bot)
+            if ERROR_BOTS[bot] is 5:
+                ERROR_COUNT += 1
+                VPGAME_BOTS.remove(bot)
+
+            # print colored("%s ERROR" % bot, 'yellow')
 
 print GOOD_BOTS
+print ERROR_BOTS
 print ERROR_COUNT
-
-stop = timeit.default_timer()
-print stop - start
-check_vp_bot('76561198113866850')
