@@ -213,10 +213,10 @@ def check_vp_bot(bot, error_container):
 def curry(error_list):
     return lambda x: check_vp_bot(x, error_list)
 
-pool = ThreadPool(3)
+pool = ThreadPool(4)
 unchecked_bots = VPGAME_BOTS
 
-for i in range(10):
+for i in range(2):
     error_bots = []
     pool.map(curry(error_bots), unchecked_bots)
 
